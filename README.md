@@ -47,9 +47,9 @@ CTID=210 STORAGE=local-lvm TEMPLATE_STORAGE=local BRIDGE=vmbr0 bash /root/chrome
 **Experimental / not yet validated on a running Proxmox host.** The current installer must not be treated as production-ready.
 
 - KasmVNC GitHub release asset matching for Debian 13 (Trixie) may fail if upstream naming differs.
-- KasmVNC `vncpasswd` invocation, TLS defaults, port binding and systemd startup need end-to-end verification.
-- Chrome is installed but is **not configured to launch automatically** in the XFCE session.
-- The template download and storage availability assumptions need verification on the target node.
+- KasmVNC `vncpasswd` invocation, TLS defaults, port binding and systemd startup need end-to-end verification.\n- KasmVNC 1.5.0 release assets must be checked for an exact Debian 13 Trixie amd64 match; do not substitute a Bookworm package automatically.\n- The current installer has not been executed on a Proxmox host; **do not run in production yet**.
+- Chrome is configured to autostart in XFCE with https://chatgpt.com, but this has not yet been verified in a live LXC.
+- Template listing is refreshed and existing downloaded templates are reused; storage compatibility still needs verification on the target node.
 - No interactive advanced mode, rollback, structured logs, health checks or upgrade/uninstall commands yet.
 - The script creates a container before application installation. A later error can leave a partially configured container; investigate before retrying.
 - 2 GiB RAM is a minimal allocation for Chrome; increase it if multiple tabs are required.
@@ -63,7 +63,7 @@ pct exec <CTID> -- journalctl -u kasm-browser.service -n 100 --no-pager
 pct exec <CTID> -- google-chrome-stable --version
 ```
 
-Expected KasmVNC address *after successful setup*: `https://<container-ip>:6901`.
+Do not assume a fixed KasmVNC port. Inspect `/home/browser/.vnc/*.log` for the actual listening address after startup.
 
 ## Community Scripts comparison
 
