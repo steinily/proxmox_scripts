@@ -15,7 +15,7 @@ fi
 [[ "$( . /etc/os-release; echo "$ID:$VERSION_ID" )" == "debian:13" ]] || { echo "Debian 13 required" >&2; exit 1; }
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y curl wget ca-certificates gnupg xfce4 xfce4-terminal dbus-x11 xauth python3 openssl ssl-cert
+apt-get install -y --no-install-recommends curl wget ca-certificates gnupg openbox dbus-x11 xauth python3 openssl ssl-cert
 install -d -m 0755 /etc/apt/keyrings
 curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /etc/apt/keyrings/google-chrome.gpg
 echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" >/etc/apt/sources.list.d/google-chrome.list
@@ -54,31 +54,26 @@ network:
   udp:
     stun_server: none
 KASMCONFIG
-# KasmVNC's first-run wizard expects an explicit desktop choice.
-# The service has no interactive stdin, so preselect XFCE for this account.
-install -d -o browser -g browser /home/browser/.vnc
+# Suppress KasmVNC's interactive desktop-selection prompt; launch our own session.
 printf '%s\n' '1' > /home/browser/.vnc/.de-was-selected
-printf '%s\n' '#!/bin/sh' 'exec startxfce4' >/home/browser/.vnc/xstartup
-chmod +x /home/browser/.vnc/xstartup
-install -d /home/browser/.config/autostart
-# Speed profile: disable XFWM4 compositing after the desktop session starts.
-# Avoid modifying Chrome profile, KasmVNC credentials or the persistent session.
-cat >/home/browser/.config/autostart/xfce-speed.desktop <<'SPEED'
-[Desktop Entry]
-Type=Application
-Name=XFCE speed profile
-Exec=xfconf-query -c xfwm4 -p /general/use_compositing -s false
-Terminal=false
-X-GNOME-Autostart-enabled=true
-SPEED
-cat >/home/browser/.config/autostart/chrome.desktop <<'DESKTOP'
-[Desktop Entry]
-Type=Application
-Name=Google Chrome
-Exec=google-chrome-stable --no-first-run --no-default-browser-check --disable-dev-shm-usage https://chatgpt.com
-Terminal=false
-X-GNOME-Autostart-enabled=true
-DESKTOP
+cat >/home/browser/.vnc/xstartup <<'STARTUP'
+#!/bin/sh
+export XDG_CURRENT_DESKTOP=OPENBOX
+export XDG_SESSION_DESKTOP=openbox
+exec dbus-run-session -- sh -c '
+  openbox &
+  WM_PID=$!
+  sleep 2
+  google-chrome-stable \
+    --no-first-run \
+    --no-default-browser-check \
+    --disable-dev-shm-usage \
+    --start-maximized \
+    https://chatgpt.com &
+  wait "$WM_PID"
+'
+STARTUP
+chmod 755 /home/browser/.vnc/xstartup
 chown -R browser:browser /home/browser
 # Create a unique temporary initial credential; change it after first login.
 # This is written root-only inside the LXC for first-login recovery.
@@ -120,6 +115,6 @@ if ! systemctl is-active --quiet kasm-browser.service; then
   journalctl -u kasm-browser.service -n 120 --no-pager >&2 || true
   exit 1
 fi
-echo "Chrome + XFCE + KasmVNC installed. LAN URL: https://$(hostname -I | awk '{print $1}'):8444"
+echo "Chrome + Openbox + KasmVNC installed. LAN URL: https://$(hostname -I | awk '{print $1}'):8444"
 echo "Initial credentials: /root/kasmvnc-initial-credentials (root-only). Change password after first login."
 echo "Security: do not forward port 8444 to the internet; restrict it to trusted LAN clients."
