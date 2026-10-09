@@ -15,7 +15,10 @@ pvesm status --storage "$STORAGE" >/dev/null
 pvesm status --storage "$TEMPLATE_STORAGE" >/dev/null
 TEMPLATE="$(pveam available --section system | awk '$2 ~ /debian-13-standard.*amd64/ {print $2}' | sort -V | tail -1)"
 [[ -n "$TEMPLATE" ]] || { echo "Debian 13 template not found"; exit 1; }
-pveam download "$TEMPLATE_STORAGE" "$TEMPLATE"
+pveam update
+if ! pveam list "$TEMPLATE_STORAGE" | grep -Fq "${TEMPLATE##*/}"; then
+  pveam download "$TEMPLATE_STORAGE" "${TEMPLATE##*/}"
+fi
 PASSWORD="${KASM_PASSWORD:-$(openssl rand -base64 24)}"
 echo "Creating CT $CTID"
 pct create "$CTID" "$TEMPLATE_STORAGE:vztmpl/${TEMPLATE##*/}" --hostname "$HOSTNAME" --ostype debian --unprivileged 1 --features nesting=1 --cores 2 --memory 2048 --swap 2048 --rootfs "$STORAGE:$DISK_GB" --net0 "name=eth0,bridge=$BRIDGE,ip=dhcp" --onboot 1 --start 1
@@ -41,6 +44,7 @@ PY
 curl -fL --retry 3 "$(cat /tmp/kasm-url)" -o /tmp/kasm.deb
 apt-get install -y /tmp/kasm.deb
 useradd -m -s /bin/bash browser
+usermod -aG ssl-cert browser
 install -d -o browser -g browser /home/browser/.vnc
 printf '%s\n' '#!/bin/sh' 'exec startxfce4' >/home/browser/.vnc/xstartup
 chmod +x /home/browser/.vnc/xstartup
@@ -57,7 +61,7 @@ Wants=network-online.target
 Type=forking
 User=browser
 WorkingDirectory=/home/browser
-ExecStart=/usr/bin/vncserver :1 -geometry 1440x900 -depth 24 -interface 0.0.0.0
+ExecStart=/usr/bin/vncserver :1 -select-de xfce -geometry 1440x900 -depth 24
 ExecStop=/usr/bin/vncserver -kill :1
 Restart=on-failure
 RestartSec=5
@@ -66,10 +70,11 @@ WantedBy=multi-user.target
 UNIT
 systemctl daemon-reload
 systemctl enable --now kasm-browser.service
+systemctl is-active --quiet kasm-browser.service || { journalctl -u kasm-browser.service -n 60 --no-pager; exit 1; }
 INNER
 echo "CTID: $CTID"
 echo "KasmVNC user: browser"
 echo "KasmVNC password: $PASSWORD"
 echo "IP: $(pct exec "$CTID" -- hostname -I)"
-echo "URL: https://<CT-IP>:6901"
-echo "IMPORTANT: Keep port 6901 LAN-only; use authenticated reverse proxy for remote access."
+echo "KasmVNC port: inspect the URL reported in /home/browser/.vnc/*.log (typically 8443 or 5901, depending on release)"
+echo "IMPORTANT: Restrict the KasmVNC listening port with firewall rules; do not expose it directly to the Internet."
