@@ -66,12 +66,14 @@ fi
 PASSWORD="${KASM_PASSWORD:-$(openssl rand -base64 24)}"
 echo "Creating CT $CTID"
 pct create "$CTID" "$TEMPLATE_STORAGE:vztmpl/${TEMPLATE##*/}" --hostname "$HOSTNAME" --ostype debian --unprivileged 1 --features nesting=1 --cores 2 --memory 2048 --swap 2048 --rootfs "$STORAGE:$DISK_GB" --net0 "name=eth0,bridge=$BRIDGE,ip=dhcp" --onboot 1 --start 1
-pct exec "$CTID" -- bash -s -- "$PASSWORD" <<'INNER'
+# Transfer secret through stdin, never through process arguments.
+printf '%s' "$PASSWORD" | pct exec "$CTID" -- sh -c 'umask 077; cat > /root/.kasm-setup-password'
+pct exec "$CTID" -- bash -s <<'INNER'
 set -Eeuo pipefail
-PASS="$1"
+PASS="$(cat /root/.kasm-setup-password)"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y curl wget ca-certificates gnupg xfce4 xfce4-terminal dbus-x11 xauth python3 openssl
+apt-get install -y curl wget ca-certificates gnupg xfce4 xfce4-terminal dbus-x11 xauth python3 openssl ssl-cert
 install -d -m 0755 /etc/apt/keyrings
 curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /etc/apt/keyrings/google-chrome.gpg
 echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" >/etc/apt/sources.list.d/google-chrome.list
@@ -101,6 +103,14 @@ apt-get install -y /tmp/kasm.deb
 useradd -m -s /bin/bash browser
 usermod -aG ssl-cert browser
 install -d -o browser -g browser /home/browser/.vnc
+cat >/home/browser/.vnc/kasmvnc.yaml <<'KASMCONFIG'
+network:
+  interface: 127.0.0.1
+  websocket_port: 8444
+  use_ipv6: false
+  udp:
+    stun_server: none
+KASMCONFIG
 printf '%s\n' '#!/bin/sh' 'exec startxfce4' >/home/browser/.vnc/xstartup
 chmod +x /home/browser/.vnc/xstartup
 install -d /home/browser/.config/autostart
@@ -114,6 +124,7 @@ X-GNOME-Autostart-enabled=true
 DESKTOP
 chown -R browser:browser /home/browser
 printf '%s\n%s\n' "$PASS" "$PASS" | runuser -u browser -- vncpasswd -u browser -w -r
+rm -f /root/.kasm-setup-password
 cat >/etc/systemd/system/kasm-browser.service <<'UNIT'
 [Unit]
 Description=Persistent KasmVNC Chrome desktop
@@ -138,5 +149,5 @@ echo "CTID: $CTID"
 echo "KasmVNC user: browser"
 echo "KasmVNC password: $PASSWORD" # Sensitive: protect terminal output and logs
 echo "IP: $(pct exec "$CTID" -- hostname -I)"
-echo "KasmVNC port: inspect the URL reported in /home/browser/.vnc/*.log (typically 8443 or 5901, depending on release)"
+echo "KasmVNC endpoint inside LXC: https://127.0.0.1:8444 (loopback only)"
 echo "IMPORTANT: Restrict the KasmVNC listening port with firewall rules; do not expose it directly to the Internet."
