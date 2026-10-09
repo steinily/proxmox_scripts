@@ -46,5 +46,5 @@ echo "Log saved: $LOG"
 echo "Last 50 log lines:"
 tail -n 50 "$LOG"
 echo
-echo "Review the log for credentials or sensitive host details before sharing."
+echo "Upload the complete log file, not a nano screen copy. Review for secrets before sharing."
 exit "$STATUS"
