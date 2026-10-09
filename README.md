@@ -1,105 +1,83 @@
 # Proxmox Scripts
 
-Standalone Proxmox VE LXC installers. **Not affiliated with Community Scripts.**
+Custom Proxmox VE installers using the [Community Scripts](https://github.com/community-scripts/ProxmoxVE) architecture and shared [core framework](https://github.com/community-scripts/core). This repository is **not affiliated with or maintained by Community Scripts**.
 
-## Chrome + KasmVNC (experimental)
+## Chrome + XFCE + KasmVNC — experimental
 
-Creates a persistent Debian 13 unprivileged LXC with Google Chrome Stable, XFCE and KasmVNC.
+The goal is a persistent Chrome desktop in a Debian 13 LXC, accessible through KasmVNC. **End-to-end installation has not yet been verified. Use a disposable test container only.**
 
-| Setting | Default |
+### Which script do I run?
+
+| File | Purpose | Run manually? |
+| --- | --- | --- |
+| [`ct/chrome-kasm.sh`](ct/chrome-kasm.sh) | Proxmox host entry point: Community Scripts configuration, storage/template selection and LXC creation | **Yes, on Proxmox host as root** |
+| [`install/chrome-kasm-install.sh`](install/chrome-kasm-install.sh) | Guest installation: XFCE, Google Chrome, KasmVNC, service and initial credentials | **No. Called by the builder inside the LXC** |
+| [`chrome-kasm-lxc.sh`](chrome-kasm-lxc.sh) | Legacy standalone installer, including its own `--preflight` | **Legacy only; not the new installation path** |
+
+The new entry point sets `COMMUNITY_SCRIPTS_URL` to this repository, and `var_install=chrome-kasm-install`, so the Community Scripts engine should resolve `install/chrome-kasm-install.sh` from this repository rather than upstream.
+
+### Planned installation — test environment only
+
+On the **Proxmox host**, as `root`:
+
+```bash
+curl -fsSLo /root/chrome-kasm.sh https://raw.githubusercontent.com/steinily/proxmox_scripts/main/ct/chrome-kasm.sh
+less /root/chrome-kasm.sh
+bash /root/chrome-kasm.sh
+```
+
+The builder will prompt for the supported container settings. **Do not use the legacy root-level `chrome-kasm-lxc.sh` to start the new installation.** The command above is documented for an isolated test; it has not been verified to complete successfully.
+
+### Defaults
+
+| Setting | Value |
 | --- | --- |
+| Guest OS | Debian 13 (amd64) |
 | CPU | 2 cores |
-| Memory | 2048 MiB |
-| Swap | 2048 MiB |
+| RAM | 2048 MiB |
 | Disk | 16 GiB |
-| Network | vmbr0 / DHCP |
-| Root filesystem storage | Auto-detect from active `rootdir` storages |
-| Template storage | Auto-detect from active `vztmpl` storages |
-| Boot on host startup | Enabled |
+| Container | Unprivileged |
+| Desktop | XFCE |
+| Browser | Google Chrome Stable |
+| Remote desktop | KasmVNC 1.4.0, Trixie amd64 package |
 
-### Preflight (before installation)
+Swap, networking, template and storage choices are handled by the Community Scripts builder; do not assume the old standalone installer's `STORAGE`/`BRIDGE` variables apply.
 
-Run on the Proxmox host as root. This mode does **not** create an LXC, download a template, or refresh template metadata. It checks the current host state only:
+### First login and diagnostics
 
-```bash
-curl -fsSLo /root/chrome-kasm-lxc.sh https://raw.githubusercontent.com/steinily/proxmox_scripts/main/chrome-kasm-lxc.sh
-bash /root/chrome-kasm-lxc.sh --preflight
-```
-
-A successful preflight does **not** prove KasmVNC starts in an LXC. The bridge is checked during preflight. Storage selection follows the Community Scripts content-type approach (`rootdir` and `vztmpl`); when several candidates exist, select interactively or provide the corresponding environment variable. The Debian 13 template must be present in the locally cached template list or already downloaded; if absent, use install mode only after reviewing the script.
-
-### Install
-
-Run **on the Proxmox VE host as root**. Inspect the script before execution:
+The guest installer is intended to generate initial credentials in `/root/kasmvnc-initial-credentials` (root-only). After a successful installation, substitute the actual CTID:
 
 ```bash
-curl -fsSLo /root/chrome-kasm-lxc.sh https://raw.githubusercontent.com/steinily/proxmox_scripts/main/chrome-kasm-lxc.sh
-less /root/chrome-kasm-lxc.sh
-bash /root/chrome-kasm-lxc.sh
-```
-
-Optional environment variables: `CTID`, `HOSTNAME`, `STORAGE`, `TEMPLATE_STORAGE`, `BRIDGE`, `DISK_GB`, `KASM_PASSWORD`.
-
-Example:
-
-```bash
-CTID=210 STORAGE=local-lvm TEMPLATE_STORAGE=local BRIDGE=vmbr0 bash /root/chrome-kasm-lxc.sh
-```
-
-### Security
-
-- Do **not** forward TCP/6901 directly to the Internet.
-- Use an authenticated HTTPS gateway (e.g. Cloudflare Tunnel + Access) for remote access; restrict direct LAN access with firewall rules.
-- The installer prints the generated KasmVNC password to the terminal: treat terminal logs as sensitive.
-- Prefer a dedicated low-privilege browser account; avoid using the browser for sensitive company data without authorization.
-
-### Known limitations / verification required
-
-**Experimental / not yet validated on a running Proxmox host.** The current installer must not be treated as production-ready.
-
-- KasmVNC is pinned to v1.4.0 Trixie amd64 and its download is SHA-256 verified against GitHub release asset metadata. Installation fails closed if the exact asset or digest is missing.
-- KasmVNC `vncpasswd` invocation, TLS defaults, port binding and systemd startup need end-to-end verification.\n- KasmVNC v1.4.0 is deliberately pinned pending a tested upgrade path; do not substitute a Bookworm package.\n- The current installer has not been executed on a Proxmox host; **do not run in production yet**.
-- Chrome XFCE autostart opens https://chatgpt.com; not yet verified in a live LXC.
-- Template listing is refreshed and existing downloaded templates are reused; storage compatibility still needs verification on the target node.
-- No interactive advanced mode, rollback, structured logs, health checks or upgrade/uninstall commands yet.
-- The script creates a container before application installation. A later error can leave a partially configured container; investigate before retrying.
-- 2 GiB RAM is a minimal allocation for Chrome; increase it if multiple tabs are required.
-
-### Diagnostics
-
-```bash
-pct list
+pct exec <CTID> -- cat /root/kasmvnc-initial-credentials
 pct exec <CTID> -- systemctl status kasm-browser.service --no-pager
 pct exec <CTID> -- journalctl -u kasm-browser.service -n 100 --no-pager
-pct exec <CTID> -- google-chrome-stable --version
+pct exec <CTID> -- ss -ltnp
 ```
 
-Do not assume a fixed KasmVNC port. Inspect `/home/browser/.vnc/*.log` for the actual listening address after startup.
+The intended KasmVNC bind is `127.0.0.1:8444` **inside the container**. Its actual binding, TLS configuration, login and XFCE/Chrome startup still require runtime verification.
 
-## Community Scripts comparison
+### Cloudflare Tunnel + Access
 
-Reference: https://github.com/community-scripts/ProxmoxVE
+Cloudflare is configured **manually**, outside this installer.
 
-| Capability | Community Scripts | This repository |
-| --- | --- | --- |
-| One-command installation | Yes | Yes |
-| Default / advanced interactive setup | Yes | Not yet |
-| Storage and network configuration | Interactive | Environment variables |
-| Common provisioning functions | Yes | Not yet |
-| Logging, retries and diagnostics | Shared helpers | Basic shell error handling |
-| Updates and recovery | Application-specific | Not yet |
-| Container resource defaults | Configurable | 2 CPU / 2 GiB RAM / 2 GiB swap |
+- Install/run `cloudflared` in the **same LXC** if the origin is `https://127.0.0.1:8444`.
+- Protect the public hostname with **Cloudflare Access** authentication.
+- If KasmVNC uses a self-signed origin certificate, configure the tunnel's origin TLS trust appropriately; do not expose the VNC service directly to the Internet.
+- A tunnel running on a different host cannot reach the container's loopback address.
 
-Community Scripts typically separates host-side container creation (`ct/`) from in-container installation (`install/`) and uses shared build/install helpers. A future version of this project should adopt that separation **without importing unstable upstream internals**.
+### Known limitations
 
-### Roadmap
+- **No verified full install yet.** The Community Scripts host/guest integration and startup are still experimental.
+- The guest installer currently expects a fresh Debian 13 container; retrying against a partially installed container may fail.
+- KasmVNC password creation, the `vncserver` service unit, XFCE startup, Chrome autostart and HTTPS port must be tested.
+- No automated upgrade, rollback or uninstall flow.
+- 2 GiB RAM is a minimum; more memory may be needed for multiple Chrome tabs.
+- The legacy script and its `--preflight` remain in the repository for reference; that preflight **does not validate the new Community Scripts path**.
 
-1. Split host-side provisioning and guest-side installation.
-2. Add preflight checks, validated storage/template selection, Default/Advanced modes and safe secret handling.
-3. Pin and verify KasmVNC packages, test Debian compatibility and make service startup reliable.
-4. Add health checks, install logs, safe retry/recovery, update and uninstall commands.
-5. Test on Proxmox VE 8/9 and document verified versions.
+### Source and licensing
+
+The host installer loads the external Community Scripts core framework at runtime. Review upstream code and versions before running scripts as root. Community Scripts is MIT licensed; this repository is an independent integration.
 
 ## Disclaimer
 
-Use at your own risk. Review all scripts before running them with root privileges.
+Use only on systems you administer, review the scripts before execution, and test in a disposable LXC before production deployment.
