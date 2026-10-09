@@ -56,6 +56,30 @@ network:
 KASMCONFIG
 # Suppress KasmVNC's interactive desktop-selection prompt; launch our own session.
 printf '%s\n' '1' > /home/browser/.vnc/.de-was-selected
+cat >/home/browser/.vnc/chrome-watchdog.sh <<'WATCHDOG'
+#!/bin/bash
+LOG="$HOME/.vnc/chrome-watchdog.log"
+echo "$(date '+%F %T') Watchdog started" >> "$LOG"
+while true; do
+  echo "$(date '+%F %T') Starting Chrome" >> "$LOG"
+  START_TIME=$SECONDS
+  google-chrome-stable \
+    --no-first-run \
+    --no-default-browser-check \
+    --disable-dev-shm-usage \
+    --start-maximized \
+    https://chatgpt.com
+  EXIT_CODE=$?
+  RUNTIME=$((SECONDS - START_TIME))
+  echo "$(date '+%F %T') Chrome exited: code=$EXIT_CODE runtime=${RUNTIME}s" >> "$LOG"
+  if [ "$RUNTIME" -lt 30 ]; then
+    sleep 15
+  else
+    sleep 3
+  fi
+done
+WATCHDOG
+chmod 755 /home/browser/.vnc/chrome-watchdog.sh
 cat >/home/browser/.vnc/xstartup <<'STARTUP'
 #!/bin/sh
 export XDG_CURRENT_DESKTOP=OPENBOX
@@ -64,12 +88,7 @@ exec dbus-run-session -- sh -c '
   openbox &
   WM_PID=$!
   sleep 2
-  google-chrome-stable \
-    --no-first-run \
-    --no-default-browser-check \
-    --disable-dev-shm-usage \
-    --start-maximized \
-    https://chatgpt.com &
+  "$HOME/.vnc/chrome-watchdog.sh" &
   wait "$WM_PID"
 '
 STARTUP
