@@ -9,6 +9,7 @@ _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-$(dirname "${BASH_SOURCE[0]}")/../../cor
 source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/core/build.func")
 
 APP="Chrome Kasm"
+var_install="chrome-kasm-install"
 var_tags="${var_tags:-browser;remote}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
