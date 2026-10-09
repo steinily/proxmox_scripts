@@ -1,0 +1,29 @@
+name: Installer static checks
+on:
+  push:
+    paths:
+      - 'chrome-kasm-lxc.sh'
+      - '.github/workflows/installer-lint.yml'
+  pull_request:
+    paths:
+      - 'chrome-kasm-lxc.sh'
+      - '.github/workflows/installer-lint.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bash syntax check
+        run: bash -n chrome-kasm-lxc.sh
+      - name: ShellCheck
+        run: shellcheck -S warning chrome-kasm-lxc.sh
+      - name: Guard against accidental execution
+        run: |
+          if grep -q 'curl.*|.*bash' chrome-kasm-lxc.sh; then
+            echo "Review any piped remote shell execution"; exit 1
+          fi
