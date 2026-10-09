@@ -70,6 +70,7 @@ pct create "$CTID" "$TEMPLATE_STORAGE:vztmpl/${TEMPLATE##*/}" --hostname "$HOSTN
 printf '%s' "$PASSWORD" | pct exec "$CTID" -- sh -c 'umask 077; cat > /root/.kasm-setup-password'
 pct exec "$CTID" -- bash -s <<'INNER'
 set -Eeuo pipefail
+trap 'rm -f /root/.kasm-setup-password' EXIT
 PASS="$(cat /root/.kasm-setup-password)"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
@@ -124,7 +125,7 @@ X-GNOME-Autostart-enabled=true
 DESKTOP
 chown -R browser:browser /home/browser
 printf '%s\n%s\n' "$PASS" "$PASS" | runuser -u browser -- vncpasswd -u browser -w -r
-rm -f /root/.kasm-setup-password
+unset PASS
 cat >/etc/systemd/system/kasm-browser.service <<'UNIT'
 [Unit]
 Description=Persistent KasmVNC Chrome desktop
@@ -147,7 +148,7 @@ systemctl is-active --quiet kasm-browser.service || { journalctl -u kasm-browser
 INNER
 echo "CTID: $CTID"
 echo "KasmVNC user: browser"
-echo "KasmVNC password: $PASSWORD" # Sensitive: protect terminal output and logs
+echo "KasmVNC password: $PASSWORD" # Save securely; shown only once
 echo "IP: $(pct exec "$CTID" -- hostname -I)"
 echo "KasmVNC endpoint inside LXC: https://127.0.0.1:8444 (loopback only)"
-echo "IMPORTANT: Restrict the KasmVNC listening port with firewall rules; do not expose it directly to the Internet."
+echo "IMPORTANT: Do not expose KasmVNC directly; use Cloudflare Tunnel + Access."
