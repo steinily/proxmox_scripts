@@ -47,7 +47,8 @@ usermod -aG ssl-cert browser
 install -d -o browser -g browser /home/browser/.vnc
 cat >/home/browser/.vnc/kasmvnc.yaml <<'KASMCONFIG'
 network:
-  interface: 127.0.0.1
+  # LAN access; restrict port 8444 to trusted networks using the Proxmox firewall.
+  interface: 0.0.0.0
   websocket_port: 8444
   use_ipv6: false
   udp:
@@ -109,4 +110,6 @@ if ! systemctl is-active --quiet kasm-browser.service; then
   journalctl -u kasm-browser.service -n 120 --no-pager >&2 || true
   exit 1
 fi
-echo "Chrome + XFCE + KasmVNC installed. Initial credentials: /root/kasmvnc-initial-credentials (root-only)."
+echo "Chrome + XFCE + KasmVNC installed. LAN URL: https://$(hostname -I | awk '{print $1}'):8444"
+echo "Initial credentials: /root/kasmvnc-initial-credentials (root-only). Change password after first login."
+echo "Security: do not forward port 8444 to the internet; restrict it to trusted LAN clients."
