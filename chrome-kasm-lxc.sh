@@ -8,17 +8,46 @@ MODE="${1:-install}"
 for c in pct pveam pvesm pvesh openssl; do command -v "$c" >/dev/null || { echo "Missing: $c"; exit 1; }; done
 CTID="${CTID:-$(pvesh get /cluster/nextid)}"
 HOSTNAME="${HOSTNAME:-chrome-kasm}"
-STORAGE="${STORAGE:-local-lvm}"
-TEMPLATE_STORAGE="${TEMPLATE_STORAGE:-local}"
+STORAGE="${STORAGE:-}"
+TEMPLATE_STORAGE="${TEMPLATE_STORAGE:-}"
 BRIDGE="${BRIDGE:-vmbr0}"
 DISK_GB="${DISK_GB:-16}"
 [[ "$CTID" =~ ^[0-9]+$ ]] || { echo "Invalid CTID"; exit 1; }
 [[ "$DISK_GB" =~ ^[0-9]+$ ]] && (( DISK_GB >= 16 )) || { echo "DISK_GB must be >= 16"; exit 1; }
 if pct config "$CTID" &>/dev/null; then echo "CTID already exists"; exit 1; fi
-pvesm status --storage "$STORAGE" >/dev/null
-pvesm status --storage "$TEMPLATE_STORAGE" >/dev/null
-pvesm status --storage "$STORAGE" | awk -v s="$STORAGE" '$1==s && $3=="active" {ok=1} END {exit !ok}' || { echo "Root storage inactive"; exit 1; }
-pvesm status --storage "$TEMPLATE_STORAGE" | awk -v s="$TEMPLATE_STORAGE" '$1==s && $3=="active" {ok=1} END {exit !ok}' || { echo "Template storage inactive"; exit 1; }
+
+# Community Scripts pattern: discover storages by Proxmox content type.
+select_storage() {
+  local content="$1" chosen="$2" line
+  local -a candidates=()
+  mapfile -t candidates < <(pvesm status -content "$content" | awk 'NR>1 && $3=="active" {print $1}')
+  if [[ -n "$chosen" ]]; then
+    for line in "${candidates[@]}"; do
+      if [[ "$line" == "$chosen" ]]; then printf '%s\n' "$chosen"; return 0; fi
+    done
+    echo "Storage '$chosen' is not active or does not support '$content'." >&2
+    return 1
+  fi
+  case "${#candidates[@]}" in
+    0) echo "No active storage supports '$content'." >&2; return 1 ;;
+    1) printf '%s\n' "${candidates[0]}" ;;
+    *)
+      if [[ ! -t 0 ]]; then
+        echo "Multiple '$content' storages: ${candidates[*]}; set STORAGE or TEMPLATE_STORAGE explicitly." >&2
+        return 1
+      fi
+      echo "Available '$content' storages:" >&2
+      local i
+      for i in "${!candidates[@]}"; do printf '  %d) %s\n' "$((i+1))" "${candidates[i]}" >&2; done
+      local selection
+      read -r -p "Select number: " selection
+      [[ "$selection" =~ ^[0-9]+$ ]] && (( selection>=1 && selection<=${#candidates[@]} )) || return 1
+      printf '%s\n' "${candidates[selection-1]}"
+      ;;
+  esac
+}
+STORAGE="$(select_storage rootdir "$STORAGE")"
+TEMPLATE_STORAGE="$(select_storage vztmpl "$TEMPLATE_STORAGE")"
 ip link show "$BRIDGE" >/dev/null 2>&1 || { echo "Bridge not found: $BRIDGE"; exit 1; }
 if [[ "$MODE" == "install" ]]; then pveam update; fi
 TEMPLATE="$(pveam available --section system | awk '$2 ~ /debian-13-standard.*amd64/ {print $2}' | sort -V | tail -1)"
