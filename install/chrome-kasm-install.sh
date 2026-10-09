@@ -15,7 +15,7 @@ fi
 [[ "$( . /etc/os-release; echo "$ID:$VERSION_ID" )" == "debian:13" ]] || { echo "Debian 13 required" >&2; exit 1; }
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y --no-install-recommends curl wget ca-certificates gnupg openbox dbus-x11 xauth python3 openssl ssl-cert
+apt-get install -y --no-install-recommends curl wget ca-certificates gnupg openbox dbus-x11 xauth python3 openssl ssl-cert logrotate
 install -d -m 0755 /etc/apt/keyrings
 curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /etc/apt/keyrings/google-chrome.gpg
 echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" >/etc/apt/sources.list.d/google-chrome.list
@@ -93,6 +93,19 @@ exec dbus-run-session -- sh -c '
 '
 STARTUP
 chmod 755 /home/browser/.vnc/xstartup
+# Rotate watchdog logs without stopping the persistent Chrome session.
+cat >/etc/logrotate.d/chrome-watchdog <<'LOGROTATE'
+/home/browser/.vnc/chrome-watchdog.log {
+    daily
+    rotate 7
+    maxsize 1M
+    missingok
+    notifempty
+    compress
+    copytruncate
+    su browser browser
+}
+LOGROTATE
 chown -R browser:browser /home/browser
 # Create a unique temporary initial credential; change it after first login.
 # This is written root-only inside the LXC for first-login recovery.
