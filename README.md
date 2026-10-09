@@ -17,6 +17,17 @@ Creates a persistent Debian 13 unprivileged LXC with Google Chrome Stable, XFCE 
 | Template storage | local |
 | Boot on host startup | Enabled |
 
+### Preflight (before installation)
+
+Run on the Proxmox host as root. This mode does **not** create an LXC, but can refresh template metadata and download the Debian 13 template:
+
+```bash
+curl -fsSLo /root/chrome-kasm-lxc.sh https://raw.githubusercontent.com/steinily/proxmox_scripts/main/chrome-kasm-lxc.sh
+bash /root/chrome-kasm-lxc.sh --preflight
+```
+
+A successful preflight does **not** prove KasmVNC starts in an LXC. Check the bridge separately if you intend to override `BRIDGE`; the install path validates it before creation.
+
 ### Install
 
 Run **on the Proxmox VE host as root**. Inspect the script before execution:
