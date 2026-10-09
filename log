@@ -1,0 +1,147 @@
+  GNU nano 8.4                                                                                     /root/chrome-kasm-debug-20261009-154459.log                                                                                               
++ set -Eeuo pipefail
++ COMMUNITY_SCRIPTS_URL=https://raw.githubusercontent.com/steinily/proxmox_scripts/main
++ export COMMUNITY_SCRIPTS_URL
+++ dirname /root/chrome-kasm.sh
++ _cs_boot=/root/../../core/core/build.func
++ source /root/../../core/core/build.func
++ source /dev/fd/63
+++ curl -fsSL https://raw.githubusercontent.com/community-scripts/core/main/core/build.func
+++ [[ -n '' ]]
+++ _LXC_BUILD_DISPATCHED=1
+++ _CS_DEFAULT_URL=https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main
+++ _CS_CORE_DEFAULT_URL=https://raw.githubusercontent.com/community-scripts/core/main
+++ [[ -z '' ]]
+++ [[ -n /dev/fd/63 ]]
+++ [[ -f /dev/fd/63 ]]
+++ [[ -z '' ]]
+++ [[ -n '' ]]
+++ [[ -n '' ]]
+++ [[ -z '' ]]
+++ _cs_caller=/root/chrome-kasm.sh
+++ [[ -n /root/chrome-kasm.sh ]]
+++ [[ -f /root/chrome-kasm.sh ]]
+++++ dirname /root/chrome-kasm.sh
++++ cd /root
++++ pwd
+++ _cs_dir=/root
+++ [[ -n /root ]]
+++ [[ /root != \/ ]]
+++ [[ -d /root/ct ]]
++++ cd /root/..
++++ pwd
+++ _cs_dir=/
+++ [[ -n / ]]
+++ [[ / != \/ ]]
+++ unset _cs_caller _cs_dir
+++ [[ -n '' ]]
+++ command -v git
+++ COMMUNITY_SCRIPTS_URL=https://raw.githubusercontent.com/steinily/proxmox_scripts/main
+++ COMMUNITY_SCRIPTS_CORE_URL=https://raw.githubusercontent.com/community-scripts/core/main
+++ export COMMUNITY_SCRIPTS_URL COMMUNITY_SCRIPTS_CORE_URL
+++ _CS_CURL_RETRY=(--retry 3 --retry-delay 1 --retry-connrefused --connect-timeout 10)
+++ _CS_ENGINE_FILES=(lib/alpine.func api/api.func api/errorlog.func api/exitcodes.func api/sysinfo.func api/telemetry.func ui/build-ui.func ui/advanced.func ui/defaults.func ui/menu.func ui/validate.func vm/cloud-init.func vm/common.fun>
+++ _cs_prefetch_engine
+++ [[ -n '' ]]
+++ [[ 0 == \1 ]]
+++ command -v curl
+++ _cs_curl_has_parallel
+++ local ver major minor
++++ curl --version
+++ ver=8.14.1
+++ major=8
+++ minor=14.1
+++ minor=14
+++ [[ 8 =~ ^[0-9]+$ ]]
+++ [[ 14 =~ ^[0-9]+$ ]]
+++ (( major > 7 || (major == 7 && minor >= 66) ))
+++ local base dir=
+++ for base in /dev/shm "${TMPDIR:-/tmp}" /tmp
+++ [[ -d /dev/shm ]]
+++ [[ -w /dev/shm ]]
+++ find /dev/shm -maxdepth 1 '(' -name 'cs-engine.*' -o -name 'cs-pveam.*' -o -name 'cs-pveversion.*' ')' -mmin +60 -exec rm -rf '{}' +
++++ mktemp -d /dev/shm/cs-engine.XXXXXX
+++ dir=/dev/shm/cs-engine.t2QXN0
+++ break
+++ [[ -z /dev/shm/cs-engine.t2QXN0 ]]
+++ local _cs_t0=1791553506159867
+++ args=()
+++ local args rel
+++ for rel in "${_CS_ENGINE_FILES[@]}"
+++ mkdir -p /dev/shm/cs-engine.t2QXN0/lib
+++ args+=(-o "${dir}/${rel}" "${COMMUNITY_SCRIPTS_CORE_URL}/${rel}")
+++ for rel in "${_CS_ENGINE_FILES[@]}"
+++ mkdir -p /dev/shm/cs-engine.t2QXN0/api
+++ args+=(-o "${dir}/${rel}" "${COMMUNITY_SCRIPTS_CORE_URL}/${rel}")
+++ for rel in "${_CS_ENGINE_FILES[@]}"
+++ mkdir -p /dev/shm/cs-engine.t2QXN0/api
+++ args+=(-o "${dir}/${rel}" "${COMMUNITY_SCRIPTS_CORE_URL}/${rel}")
+++ for rel in "${_CS_ENGINE_FILES[@]}"
+++ mkdir -p /dev/shm/cs-engine.t2QXN0/api
+++ args+=(-o "${dir}/${rel}" "${COMMUNITY_SCRIPTS_CORE_URL}/${rel}")
+++ for rel in "${_CS_ENGINE_FILES[@]}"
+++ mkdir -p /dev/shm/cs-engine.t2QXN0/api
+++ args+=(-o "${dir}/${rel}" "${COMMUNITY_SCRIPTS_CORE_URL}/${rel}")
+++ for rel in "${_CS_ENGINE_FILES[@]}"
+++ mkdir -p /dev/shm/cs-engine.t2QXN0/api
+++ args+=(-o "${dir}/${rel}" "${COMMUNITY_SCRIPTS_CORE_URL}/${rel}")
+++ for rel in "${_CS_ENGINE_FILES[@]}"
+++ mkdir -p /dev/shm/cs-engine.t2QXN0/ui
+++ args+=(-o "${dir}/${rel}" "${COMMUNITY_SCRIPTS_CORE_URL}/${rel}")
+++ for rel in "${_CS_ENGINE_FILES[@]}"
+++ mkdir -p /dev/shm/cs-engine.t2QXN0/ui
+++ args+=(-o "${dir}/${rel}" "${COMMUNITY_SCRIPTS_CORE_URL}/${rel}")
+++ for rel in "${_CS_ENGINE_FILES[@]}"
+++ mkdir -p /dev/shm/cs-engine.t2QXN0/ui
+++ args+=(-o "${dir}/${rel}" "${COMMUNITY_SCRIPTS_CORE_URL}/${rel}")
+++ for rel in "${_CS_ENGINE_FILES[@]}"
+++ mkdir -p /dev/shm/cs-engine.t2QXN0/ui
+++ args+=(-o "${dir}/${rel}" "${COMMUNITY_SCRIPTS_CORE_URL}/${rel}")
+++ for rel in "${_CS_ENGINE_FILES[@]}"
+++ [[ -s /dev/shm/cs-engine.t2QXN0/incus/vm-core.func ]]
+++ kept=35
+++ _cs_net_log 200 481 'prefetch: 35 files, 0 missing -> /dev/shm/cs-engine.t2QXN0'
+++ [[ ,, == *,net,* ]]
+++ return 0
+++ (( kept == 0 ))
+++ COMMUNITY_SCRIPTS_CORE_DIR=/dev/shm/cs-engine.t2QXN0
+++ export COMMUNITY_SCRIPTS_CORE_DIR
+++ return 0
+++ _cs_source_func lxc/platform.func
+++ local rel=lxc/platform.func
+++ local file
++++ _cs_local_path lxc/platform.func
++++ local rel=lxc/platform.func
++++ local candidate
++++ _cs_is_engine_path lxc/platform.func
++++ case "${1:-}" in
++++ return 0
++++ [[ -z /dev/shm/cs-engine.t2QXN0 ]]
++++ candidate=/dev/shm/cs-engine.t2QXN0/lxc/platform.func
++++ [[ -f /dev/shm/cs-engine.t2QXN0/lxc/platform.func ]]
++++ echo /dev/shm/cs-engine.t2QXN0/lxc/platform.func
++++ return 0
+++ file=/dev/shm/cs-engine.t2QXN0/lxc/platform.func
+++ [[ -n /dev/shm/cs-engine.t2QXN0/lxc/platform.func ]]
+++ source /dev/shm/cs-engine.t2QXN0/lxc/platform.func
++++ [[ -n '' ]]
++++ _LXC_PLATFORM_FUNC_LOADED=1
+++ return 0
+++ declare -f ensure_incus_on_path
+++ ensure_incus_on_path
+++ command -v incus
+++ local bin dir
++++ _lxc_incus_bin
++++ command -v incus
++++ local p
++++ for p in /usr/bin/incus /usr/local/bin/incus /snap/bin/incus /opt/incus/bin/incus
++++ [[ -x /usr/bin/incus ]]
++++ for p in /usr/bin/incus /usr/local/bin/incus /snap/bin/incus /opt/incus/bin/incus
++++ [[ -x /usr/local/bin/incus ]]
++++ for p in /usr/bin/incus /usr/local/bin/incus /snap/bin/incus /opt/incus/bin/incus
++++ [[ -x /snap/bin/incus ]]
++++ for p in /usr/bin/incus /usr/local/bin/incus /snap/bin/incus /opt/incus/bin/incus
++++ [[ -x /opt/incus/bin/incus ]]
++++ return 1
+++ bin=
+++ r
