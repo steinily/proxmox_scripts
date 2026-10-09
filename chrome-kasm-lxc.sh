@@ -2,7 +2,10 @@
 set -Eeuo pipefail
 # Proxmox host installer: Debian 13 + Chrome + XFCE + KasmVNC
 [[ $EUID -eq 0 ]] || { echo "Run as root on Proxmox"; exit 1; }
-for c in pct pveam pvesm openssl; do command -v "$c" >/dev/null || { echo "Missing: $c"; exit 1; }; done
+MODE="${1:-install}"
+[[ "$MODE" == install || "$MODE" == --preflight ]] || { echo "Usage: $0 [--preflight]"; exit 2; }
+
+for c in pct pveam pvesm pvesh openssl; do command -v "$c" >/dev/null || { echo "Missing: $c"; exit 1; }; done
 CTID="${CTID:-$(pvesh get /cluster/nextid)}"
 HOSTNAME="${HOSTNAME:-chrome-kasm}"
 STORAGE="${STORAGE:-local-lvm}"
@@ -13,13 +16,20 @@ DISK_GB="${DISK_GB:-16}"
 if pct config "$CTID" &>/dev/null; then echo "CTID already exists"; exit 1; fi
 pvesm status --storage "$STORAGE" >/dev/null
 pvesm status --storage "$TEMPLATE_STORAGE" >/dev/null
+pvesm status --storage "$STORAGE" | grep -q active || { echo "Root storage inactive"; exit 1; }
 pveam update\nTEMPLATE="$(pveam available --section system | awk '$2 ~ /debian-13-standard.*amd64/ {print $2}' | sort -V | tail -1)"
 [[ -n "$TEMPLATE" ]] || { echo "Debian 13 template not found"; exit 1; }
 pveam update
 if ! pveam list "$TEMPLATE_STORAGE" | grep -Fq "${TEMPLATE##*/}"; then
   pveam download "$TEMPLATE_STORAGE" "${TEMPLATE##*/}"
 fi
+if [[ "$MODE" == "--preflight" ]]; then
+  echo "PREFLIGHT OK: CTID=$CTID, storage=$STORAGE, template-storage=$TEMPLATE_STORAGE, bridge=$BRIDGE, template=${TEMPLATE##*/}"
+  echo "NOTE: Guest-side KasmVNC and Chrome installation cannot be validated without a test LXC."
+  exit 0
+fi
 PASSWORD="${KASM_PASSWORD:-$(openssl rand -base64 24)}"
+if ! ip link show "$BRIDGE" >/dev/null 2>&1; then echo "Bridge not found: $BRIDGE"; exit 1; fi
 echo "Creating CT $CTID"
 pct create "$CTID" "$TEMPLATE_STORAGE:vztmpl/${TEMPLATE##*/}" --hostname "$HOSTNAME" --ostype debian --unprivileged 1 --features nesting=1 --cores 2 --memory 2048 --swap 2048 --rootfs "$STORAGE:$DISK_GB" --net0 "name=eth0,bridge=$BRIDGE,ip=dhcp" --onboot 1 --start 1
 pct exec "$CTID" -- bash -s -- "$PASSWORD" <<'INNER'
