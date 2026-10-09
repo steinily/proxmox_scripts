@@ -4,7 +4,7 @@ Standalone Proxmox VE LXC installers. **Not affiliated with Community Scripts.**
 
 ## Chrome + KasmVNC (experimental)
 
-Creates a persistent Debian 12 unprivileged LXC with Google Chrome Stable, XFCE and KasmVNC.
+Creates a persistent Debian 13 unprivileged LXC with Google Chrome Stable, XFCE and KasmVNC.
 
 | Setting | Default |
 | --- | --- |
@@ -46,7 +46,7 @@ CTID=210 STORAGE=local-lvm TEMPLATE_STORAGE=local BRIDGE=vmbr0 bash /root/chrome
 
 **Experimental / not yet validated on a running Proxmox host.** The current installer must not be treated as production-ready.
 
-- KasmVNC GitHub release asset matching for Debian 12 may fail if upstream naming differs.
+- KasmVNC GitHub release asset matching for Debian 13 (Trixie) may fail if upstream naming differs.
 - KasmVNC `vncpasswd` invocation, TLS defaults, port binding and systemd startup need end-to-end verification.
 - Chrome is installed but is **not configured to launch automatically** in the XFCE session.
 - The template download and storage availability assumptions need verification on the target node.
