@@ -53,6 +53,10 @@ network:
   udp:
     stun_server: none
 KASMCONFIG
+# KasmVNC's first-run wizard expects an explicit desktop choice.
+# The service has no interactive stdin, so preselect XFCE for this account.
+install -d -o browser -g browser /home/browser/.vnc
+printf '%s\n' '1' > /home/browser/.vnc/.de-was-selected
 printf '%s\n' '#!/bin/sh' 'exec startxfce4' >/home/browser/.vnc/xstartup
 chmod +x /home/browser/.vnc/xstartup
 install -d /home/browser/.config/autostart
