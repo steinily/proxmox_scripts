@@ -10,10 +10,10 @@ TEMPLATE_STORAGE="${TEMPLATE_STORAGE:-local}"
 BRIDGE="${BRIDGE:-vmbr0}"
 DISK_GB="${DISK_GB:-16}"
 [[ "$CTID" =~ ^[0-9]+$ ]] || exit 1
-pct status "$CTID" &>/dev/null && { echo "CTID exists"; exit 1; }
+if pct config "$CTID" &>/dev/null; then echo "CTID already exists"; exit 1; fi
 pvesm status --storage "$STORAGE" >/dev/null
 pvesm status --storage "$TEMPLATE_STORAGE" >/dev/null
-TEMPLATE="$(pveam available --section system | awk '$2 ~ /debian-13-standard.*amd64/ {print $2}' | sort -V | tail -1)"
+pveam update\nTEMPLATE="$(pveam available --section system | awk '$2 ~ /debian-13-standard.*amd64/ {print $2}' | sort -V | tail -1)"
 [[ -n "$TEMPLATE" ]] || { echo "Debian 13 template not found"; exit 1; }
 pveam update
 if ! pveam list "$TEMPLATE_STORAGE" | grep -Fq "${TEMPLATE##*/}"; then
@@ -33,15 +33,26 @@ curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o 
 echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" >/etc/apt/sources.list.d/google-chrome.list
 apt-get update && apt-get install -y google-chrome-stable
 # KasmVNC package releases are architecture/distribution-specific: resolve Debian trixie amd64 release.
-python3 - <<'PY' >/tmp/kasm-url
-import json,urllib.request
-req=urllib.request.Request('https://api.github.com/repos/kasmtech/KasmVNC/releases/latest',headers={'User-Agent':'proxmox-kasm-installer'})
-data=json.load(urllib.request.urlopen(req,timeout=20))
-matches=[a['browser_download_url'] for a in data['assets'] if a['name'].endswith('.deb') and 'trixie' in a['name'].lower() and ('amd64' in a['name'].lower() or 'x86_64' in a['name'].lower())]
-if len(matches)!=1: raise SystemExit('No unique Trixie amd64 KasmVNC release; inspect upstream assets')
-print(matches[0])
+python3 - <<'PY'
+import hashlib,json,urllib.request
+name='kasmvncserver_trixie_1.4.0_amd64.deb'
+req=urllib.request.Request('https://api.github.com/repos/kasmtech/KasmVNC/releases/tags/v1.4.0',headers={'User-Agent':'proxmox-kasm-installer'})
+with urllib.request.urlopen(req,timeout=30) as resp: release=json.load(resp)
+assets=[a for a in release['assets'] if a['name']==name]
+if len(assets)!=1: raise SystemExit('Expected pinned KasmVNC Trixie asset missing: '+name)
+asset=assets[0]
+digest=asset.get('digest','')
+if not digest.startswith('sha256:'): raise SystemExit('GitHub asset SHA256 digest unavailable; refusing unverified package')
+request=urllib.request.Request(asset['browser_download_url'],headers={'User-Agent':'proxmox-kasm-installer'})
+h=hashlib.sha256()
+with urllib.request.urlopen(request,timeout=90) as src,open('/tmp/kasm.deb','wb') as dst:
+    while True:
+        chunk=src.read(1024*1024)
+        if not chunk: break
+        dst.write(chunk);h.update(chunk)
+if h.hexdigest()!=digest.split(':',1)[1]: raise SystemExit('KasmVNC SHA256 mismatch')
+print('KasmVNC asset verified:',name)
 PY
-curl -fL --retry 3 "$(cat /tmp/kasm-url)" -o /tmp/kasm.deb
 apt-get install -y /tmp/kasm.deb
 useradd -m -s /bin/bash browser
 usermod -aG ssl-cert browser
@@ -61,7 +72,7 @@ Wants=network-online.target
 Type=forking
 User=browser
 WorkingDirectory=/home/browser
-ExecStart=/usr/bin/vncserver :1 -select-de xfce -geometry 1440x900 -depth 24
+ExecStart=/usr/bin/vncserver :1 -geometry 1440x900 -depth 24
 ExecStop=/usr/bin/vncserver -kill :1
 Restart=on-failure
 RestartSec=5
