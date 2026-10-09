@@ -89,6 +89,20 @@ RestartSec=5
 WantedBy=multi-user.target
 UNIT
 systemctl daemon-reload
-systemctl enable --now kasm-browser.service
-systemctl is-active --quiet kasm-browser.service || { journalctl -u kasm-browser.service -n 80 --no-pager; exit 1; }
+# Keep enable and start separate so a startup failure can be diagnosed.
+systemctl enable kasm-browser.service
+if ! systemctl start kasm-browser.service; then
+  echo "ERROR: KasmVNC service failed to start; diagnostics follow." >&2
+  systemctl status kasm-browser.service --no-pager -l >&2 || true
+  journalctl -u kasm-browser.service -n 120 --no-pager >&2 || true
+  echo "KasmVNC log files:" >&2
+  find /home/browser/.vnc -maxdepth 2 -type f -name '*.log' -print -exec tail -n 80 {} \; >&2 || true
+  echo "The Community Scripts failure menu may auto-remove the container; choose Keep container for debugging promptly." >&2
+  exit 1
+fi
+if ! systemctl is-active --quiet kasm-browser.service; then
+  systemctl status kasm-browser.service --no-pager -l >&2 || true
+  journalctl -u kasm-browser.service -n 120 --no-pager >&2 || true
+  exit 1
+fi
 echo "Chrome + XFCE + KasmVNC installed. Initial credentials: /root/kasmvnc-initial-credentials (root-only)."
