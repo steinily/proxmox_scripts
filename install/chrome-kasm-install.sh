@@ -65,7 +65,13 @@ Terminal=false
 X-GNOME-Autostart-enabled=true
 DESKTOP
 chown -R browser:browser /home/browser
-# KasmVNC credentials are configured separately after container creation.
+# Create a unique temporary initial credential; change it after first login.
+# This is written root-only inside the LXC for first-login recovery.
+umask 077
+KASM_INITIAL_PASSWORD="$(openssl rand -hex 18)"
+printf '%s\n%s\n' "$KASM_INITIAL_PASSWORD" "$KASM_INITIAL_PASSWORD" | runuser -u browser -- vncpasswd -u browser -w -r
+printf 'KasmVNC username: browser\nKasmVNC initial password: %s\n' "$KASM_INITIAL_PASSWORD" >/root/kasmvnc-initial-credentials
+unset KASM_INITIAL_PASSWORD
 cat >/etc/systemd/system/kasm-browser.service <<'UNIT'
 [Unit]
 Description=Persistent KasmVNC Chrome desktop
@@ -83,5 +89,6 @@ RestartSec=5
 WantedBy=multi-user.target
 UNIT
 systemctl daemon-reload
-systemctl enable kasm-browser.service
-echo "Application packages installed. Configure KasmVNC credentials before starting the service."
+systemctl enable --now kasm-browser.service
+systemctl is-active --quiet kasm-browser.service || { journalctl -u kasm-browser.service -n 80 --no-pager; exit 1; }
+echo "Chrome + XFCE + KasmVNC installed. Initial credentials: /root/kasmvnc-initial-credentials (root-only)."
