@@ -61,6 +61,16 @@ printf '%s\n' '1' > /home/browser/.vnc/.de-was-selected
 printf '%s\n' '#!/bin/sh' 'exec startxfce4' >/home/browser/.vnc/xstartup
 chmod +x /home/browser/.vnc/xstartup
 install -d /home/browser/.config/autostart
+# Speed profile: disable XFWM4 compositing after the desktop session starts.
+# Avoid modifying Chrome profile, KasmVNC credentials or the persistent session.
+cat >/home/browser/.config/autostart/xfce-speed.desktop <<'SPEED'
+[Desktop Entry]
+Type=Application
+Name=XFCE speed profile
+Exec=xfconf-query -c xfwm4 -p /general/use_compositing -s false
+Terminal=false
+X-GNOME-Autostart-enabled=true
+SPEED
 cat >/home/browser/.config/autostart/chrome.desktop <<'DESKTOP'
 [Desktop Entry]
 Type=Application
