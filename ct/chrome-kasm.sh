@@ -11,6 +11,8 @@ source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_
 
 APP="Chrome Kasm"
 var_install="chrome-kasm-install"
+# Community Scripts variables() derives the guest script name from the ct filename.
+# Override it after variables() because this repository uses a hyphenated install filename.
 var_tags="${var_tags:-browser;remote}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
@@ -22,6 +24,7 @@ var_arm64="no"
 
 header_info "$APP"
 variables
+var_install="chrome-kasm-install"
 color
 catch_errors
 
