@@ -13,8 +13,8 @@ Creates a persistent Debian 13 unprivileged LXC with Google Chrome Stable, XFCE 
 | Swap | 2048 MiB |
 | Disk | 16 GiB |
 | Network | vmbr0 / DHCP |
-| Root filesystem storage | local-lvm |
-| Template storage | local |
+| Root filesystem storage | Auto-detect from active `rootdir` storages |
+| Template storage | Auto-detect from active `vztmpl` storages |
 | Boot on host startup | Enabled |
 
 ### Preflight (before installation)
@@ -26,7 +26,7 @@ curl -fsSLo /root/chrome-kasm-lxc.sh https://raw.githubusercontent.com/steinily/
 bash /root/chrome-kasm-lxc.sh --preflight
 ```
 
-A successful preflight does **not** prove KasmVNC starts in an LXC. The bridge is checked during preflight. The Debian 13 template must be present in the locally cached template list or already downloaded; if absent, use install mode only after reviewing the script.
+A successful preflight does **not** prove KasmVNC starts in an LXC. The bridge is checked during preflight. Storage selection follows the Community Scripts content-type approach (`rootdir` and `vztmpl`); when several candidates exist, select interactively or provide the corresponding environment variable. The Debian 13 template must be present in the locally cached template list or already downloaded; if absent, use install mode only after reviewing the script.
 
 ### Install
 
