@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-# Proxmox host installer: Debian 12 + Chrome + XFCE + KasmVNC
+# Proxmox host installer: Debian 13 + Chrome + XFCE + KasmVNC
 [[ $EUID -eq 0 ]] || { echo "Run as root on Proxmox"; exit 1; }
 for c in pct pveam pvesm openssl; do command -v "$c" >/dev/null || { echo "Missing: $c"; exit 1; }; done
 CTID="${CTID:-$(pvesh get /cluster/nextid)}"
@@ -13,8 +13,8 @@ DISK_GB="${DISK_GB:-16}"
 pct status "$CTID" &>/dev/null && { echo "CTID exists"; exit 1; }
 pvesm status --storage "$STORAGE" >/dev/null
 pvesm status --storage "$TEMPLATE_STORAGE" >/dev/null
-TEMPLATE="$(pveam available --section system | awk '$2 ~ /debian-12-standard.*amd64/ {print $2}' | sort -V | tail -1)"
-[[ -n "$TEMPLATE" ]] || { echo "Debian 12 template not found"; exit 1; }
+TEMPLATE="$(pveam available --section system | awk '$2 ~ /debian-13-standard.*amd64/ {print $2}' | sort -V | tail -1)"
+[[ -n "$TEMPLATE" ]] || { echo "Debian 13 template not found"; exit 1; }
 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE"
 PASSWORD="${KASM_PASSWORD:-$(openssl rand -base64 24)}"
 echo "Creating CT $CTID"
@@ -29,13 +29,13 @@ install -d -m 0755 /etc/apt/keyrings
 curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /etc/apt/keyrings/google-chrome.gpg
 echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" >/etc/apt/sources.list.d/google-chrome.list
 apt-get update && apt-get install -y google-chrome-stable
-# KasmVNC package releases are architecture/distribution-specific: resolve Debian bookworm amd64 release.
+# KasmVNC package releases are architecture/distribution-specific: resolve Debian trixie amd64 release.
 python3 - <<'PY' >/tmp/kasm-url
 import json,urllib.request
 req=urllib.request.Request('https://api.github.com/repos/kasmtech/KasmVNC/releases/latest',headers={'User-Agent':'proxmox-kasm-installer'})
 data=json.load(urllib.request.urlopen(req,timeout=20))
-matches=[a['browser_download_url'] for a in data['assets'] if a['name'].endswith('.deb') and 'bookworm' in a['name'].lower() and ('amd64' in a['name'].lower() or 'x86_64' in a['name'].lower())]
-if len(matches)!=1: raise SystemExit('No unique Bookworm amd64 KasmVNC release; inspect upstream assets')
+matches=[a['browser_download_url'] for a in data['assets'] if a['name'].endswith('.deb') and 'trixie' in a['name'].lower() and ('amd64' in a['name'].lower() or 'x86_64' in a['name'].lower())]
+if len(matches)!=1: raise SystemExit('No unique Trixie amd64 KasmVNC release; inspect upstream assets')
 print(matches[0])
 PY
 curl -fL --retry 3 "$(cat /tmp/kasm-url)" -o /tmp/kasm.deb
