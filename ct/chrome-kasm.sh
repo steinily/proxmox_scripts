@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Chrome + XFCE + KasmVNC, using the Community Scripts LXC engine.
 # Source: https://github.com/community-scripts/core (MIT)
-set -Eeuo pipefail
+# The Community Scripts bootstrap probes optional runtimes (including Incus).
+# Do not enable errexit here: a normal unsuccessful probe must not abort Proxmox startup.
 COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/steinily/proxmox_scripts/main}"
 export COMMUNITY_SCRIPTS_URL
 _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-$(dirname "${BASH_SOURCE[0]}")/../../core}/core/build.func"
