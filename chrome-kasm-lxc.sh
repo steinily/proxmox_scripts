@@ -12,7 +12,8 @@ STORAGE="${STORAGE:-local-lvm}"
 TEMPLATE_STORAGE="${TEMPLATE_STORAGE:-local}"
 BRIDGE="${BRIDGE:-vmbr0}"
 DISK_GB="${DISK_GB:-16}"
-[[ "$CTID" =~ ^[0-9]+$ ]] || exit 1
+[[ "$CTID" =~ ^[0-9]+$ ]] || { echo "Invalid CTID"; exit 1; }
+[[ "$DISK_GB" =~ ^[0-9]+$ ]] && (( DISK_GB >= 16 )) || { echo "DISK_GB must be >= 16"; exit 1; }
 if pct config "$CTID" &>/dev/null; then echo "CTID already exists"; exit 1; fi
 pvesm status --storage "$STORAGE" >/dev/null
 pvesm status --storage "$TEMPLATE_STORAGE" >/dev/null
@@ -73,8 +74,15 @@ usermod -aG ssl-cert browser
 install -d -o browser -g browser /home/browser/.vnc
 printf '%s\n' '#!/bin/sh' 'exec startxfce4' >/home/browser/.vnc/xstartup
 chmod +x /home/browser/.vnc/xstartup
-printf '%s\n' '#!/bin/sh' 'exec google-chrome-stable --no-first-run --password-store=basic' >/home/browser/Desktop-Chrome.sh
-chmod +x /home/browser/Desktop-Chrome.sh
+install -d /home/browser/.config/autostart
+cat >/home/browser/.config/autostart/chrome.desktop <<'DESKTOP'
+[Desktop Entry]
+Type=Application
+Name=Google Chrome
+Exec=google-chrome-stable --no-first-run --no-default-browser-check --disable-dev-shm-usage https://chatgpt.com
+Terminal=false
+X-GNOME-Autostart-enabled=true
+DESKTOP
 chown -R browser:browser /home/browser
 printf '%s\n%s\n' "$PASS" "$PASS" | runuser -u browser -- vncpasswd -u browser -w -r
 cat >/etc/systemd/system/kasm-browser.service <<'UNIT'
@@ -99,7 +107,7 @@ systemctl is-active --quiet kasm-browser.service || { journalctl -u kasm-browser
 INNER
 echo "CTID: $CTID"
 echo "KasmVNC user: browser"
-echo "KasmVNC password: $PASSWORD"
+echo "KasmVNC password: $PASSWORD" # Sensitive: protect terminal output and logs
 echo "IP: $(pct exec "$CTID" -- hostname -I)"
 echo "KasmVNC port: inspect the URL reported in /home/browser/.vnc/*.log (typically 8443 or 5901, depending on release)"
 echo "IMPORTANT: Restrict the KasmVNC listening port with firewall rules; do not expose it directly to the Internet."
