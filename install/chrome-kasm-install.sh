@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 # Application-only installer; intended for Debian 13 LXC provisioned by Community Scripts.
 set -Eeuo pipefail
+if [[ -n "${FUNCTIONS_FILE_PATH:-}" ]]; then
+  # Community Scripts passes the shared helper location via this variable.
+  # shellcheck disable=SC1090
+  source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
+  color
+  catch_errors
+  setting_up_container
+  network_check
+  update_os
+fi
 [[ "$EUID" -eq 0 ]] || { echo "Run as root in the container" >&2; exit 1; }
 [[ "$( . /etc/os-release; echo "$ID:$VERSION_ID" )" == "debian:13" ]] || { echo "Debian 13 required" >&2; exit 1; }
 export DEBIAN_FRONTEND=noninteractive
